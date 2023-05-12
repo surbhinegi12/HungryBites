@@ -9,9 +9,9 @@ router.get("/", async (req, res) => {
     const users = await DB("user")
       .select(["id", "name", "address", "email"])
       .whereNull("deleted_at");
-    res.json(users);
+    res.status(200).json(users);
   } catch (err) {
-    res.json(err);
+    res.status(500).json(err);
   }
 });
 
@@ -81,7 +81,6 @@ router.post("/login", async (req, res) => {
         } else {
           bcrypt.compare(password, user.password, (err, result) => {
             if (result) {
-             
               const sessionId = req.session.id;
               req.session.userId = user.id;
               req.session.email = user.email;

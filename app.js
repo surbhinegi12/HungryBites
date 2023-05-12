@@ -22,7 +22,7 @@ app.use("/users", usersRouter);
 app.use("/orders", ordersRouter);
 app.use("/products", productsRouter);
 
-app.listen(port, () => {
+app.listen({ port, host: "0.0.0.0" }, () => {
   console.log(`Listening on port ${port}`);
 });
 

@@ -1,0 +1,590 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 13.10
+-- Dumped by pg_dump version 13.10
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: pg_trgm; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION pg_trgm; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION pg_trgm IS 'text similarity measurement and index searching based on trigrams';
+
+
+--
+-- Name: postgis; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis IS 'PostGIS geometry and geography spatial types and functions';
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: order; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."order" (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    location public.geography NOT NULL,
+    amount numeric NOT NULL,
+    created_at timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public."order" OWNER TO postgres;
+
+--
+-- Name: orderDetails; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."orderDetails" (
+    order_id integer NOT NULL,
+    quantity integer NOT NULL,
+    price numeric NOT NULL,
+    product_id integer NOT NULL,
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public."orderDetails" OWNER TO postgres;
+
+--
+-- Name: orderDetails_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."orderDetails_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public."orderDetails_id_seq" OWNER TO postgres;
+
+--
+-- Name: orderDetails_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."orderDetails_id_seq" OWNED BY public."orderDetails".id;
+
+
+--
+-- Name: order_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.order_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.order_id_seq OWNER TO postgres;
+
+--
+-- Name: order_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.order_id_seq OWNED BY public."order".id;
+
+
+--
+-- Name: postgis; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.postgis (
+    geom public.geometry(Point),
+    geog public.geography(Point,4326)
+);
+
+
+ALTER TABLE public.postgis OWNER TO postgres;
+
+--
+-- Name: product; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product (
+    id integer NOT NULL,
+    name text NOT NULL,
+    price numeric NOT NULL,
+    units integer DEFAULT 100 NOT NULL
+);
+
+
+ALTER TABLE public.product OWNER TO postgres;
+
+--
+-- Name: product_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.product_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.product_id_seq OWNER TO postgres;
+
+--
+-- Name: product_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.product_id_seq OWNED BY public.product.id;
+
+
+--
+-- Name: user; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."user" (
+    password text NOT NULL,
+    id integer NOT NULL,
+    name character varying NOT NULL,
+    email text NOT NULL,
+    address text,
+    deleted_at timestamp with time zone
+);
+
+
+ALTER TABLE public."user" OWNER TO postgres;
+
+--
+-- Name: user_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.user_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.user_id_seq OWNER TO postgres;
+
+--
+-- Name: user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.user_id_seq OWNED BY public."user".id;
+
+
+--
+-- Name: order id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."order" ALTER COLUMN id SET DEFAULT nextval('public.order_id_seq'::regclass);
+
+
+--
+-- Name: orderDetails id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."orderDetails" ALTER COLUMN id SET DEFAULT nextval('public."orderDetails_id_seq"'::regclass);
+
+
+--
+-- Name: product id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product ALTER COLUMN id SET DEFAULT nextval('public.product_id_seq'::regclass);
+
+
+--
+-- Name: user id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."user" ALTER COLUMN id SET DEFAULT nextval('public.user_id_seq'::regclass);
+
+
+--
+-- Data for Name: order; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."order" (id, user_id, location, amount, created_at) FROM stdin;
+11	2	0101000020E61000001F85EB51B87E6040CDCCCCCCCC4C2440	2100	2023-05-03 05:56:41.778+00
+12	3	0101000020E61000003D0AD7A3703D5E406666666666765140	450	2023-05-03 06:04:23.371+00
+13	3	0101000020E6100000EC51B81E85EB2540CDCCCCCCCC4C2640	300	2023-05-03 09:25:09.686+00
+15	2	0101000020E6100000EC51B81E85EB2540CDCCCCCCCC4C2640	300	2023-05-03 09:47:01.264+00
+16	4	0101000020E61000003D0AD7A3703D59406666666666B65340	1250	2023-05-03 09:52:11.475+00
+17	6	0101000020E61000001F85EB51B85E65400000000000E05340	700	2023-05-03 11:33:35.162+00
+18	6	0101000020E610000000000000004065400000000000005440	200	2023-05-03 11:34:02.805+00
+19	8	0101000020E610000000000000004065400000000000005440	200	2023-05-03 11:59:30.094+00
+21	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:02:07.221+00
+22	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:09:17.082+00
+23	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:11:03.046+00
+31	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:20:11.417+00
+32	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:20:20.1+00
+33	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:32:49.642+00
+34	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:32:54.126+00
+36	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:36:02.453+00
+41	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:48:57.913+00
+43	8	0101000020E610000000000000004065400000000000005440	200	2023-05-04 04:49:55.133+00
+55	17	0101000020E610000000000000000059400000000000005440	200	2023-05-04 08:20:38.25+00
+61	17	0101000020E610000000000000000059400000000000005440	1000	2023-05-04 08:33:11.405+00
+67	17	0101000020E610000000000000000059400000000000005440	600	2023-05-04 09:00:06.06+00
+68	17	0101000020E610000000000000000059400000000000005440	600	2023-05-04 10:00:40.458+00
+73	18	0101000020E61000005C8FC2F5283C5B4085EB51B81E052440	1600	2023-05-04 10:09:54.308+00
+74	18	0101000020E6100000EF6C34257E4753402618737C59B73C40	1600	2023-05-04 10:12:06.115+00
+75	18	0101000020E6100000EF6C34257E4753402618737C59B73C40	2900	2023-05-04 10:20:24.771+00
+76	18	0101000020E6100000EF6C34257E4753402618737C59B73C40	2900	2023-05-04 10:21:00.91+00
+77	18	0101000020E6100000EF6C34257E4753402618737C59B73C40	2900	2023-05-04 10:24:12.575+00
+78	18	0101000020E6100000EF6C34257E4753402618737C59B73C40	2900	2023-05-04 10:27:18.789+00
+79	20	0101000020E6100000EF6C34257E4753402618737C59B73C40	3600	2023-05-04 11:22:23.88+00
+80	20	0101000020E6100000EF6C34257E4753402618737C59B73C40	500	2023-05-04 11:23:28.56+00
+81	17	0101000020E6100000EF6C34257E4753402618737C59B73C40	500	2023-05-05 07:30:13.331+00
+82	18	0101000020E6100000FEB4519D0EA83C40B2F2CB608C4F5340	500	2023-05-08 04:44:02.695+00
+83	18	0101000020E6100000AC8C463EAF4E534025EA059FE69C3C40	500	2023-05-08 04:49:08.308+00
+84	18	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	500	2023-05-08 04:59:02.135+00
+86	18	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	500	2023-05-08 07:52:15.107+00
+95	18	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	500	2023-05-08 10:23:16.786+00
+101	18	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	700	2023-05-09 07:16:09.012+00
+108	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	600	2023-05-09 07:38:45.464+00
+110	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:32:13.604+00
+111	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:34:49.614+00
+112	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:35:32.06+00
+113	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:37:35.364+00
+117	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:41:33.547+00
+118	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:41:47.966+00
+119	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:42:54.562+00
+120	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:45:26.181+00
+121	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:48:00.852+00
+123	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:52:10.381+00
+126	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:55:41.634+00
+127	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	NaN	2023-05-09 08:56:37.002+00
+128	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	2200	2023-05-09 09:06:18.088+00
+130	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	3700	2023-05-09 09:23:58.974+00
+131	17	0101000020E6100000AAF1D24D628052C05E4BC8073D5B4440	2400	2023-05-09 09:26:43.2+00
+132	23	0101000020E610000066666666664E53408E06F01648A03C40	1150	2023-05-09 09:34:42.549+00
+134	23	0101000020E610000066666666664E53408E06F01648A03C40	900	2023-05-09 09:35:47.657+00
+145	23	0101000020E610000066666666664E53408E06F01648A03C40	5600	2023-05-09 11:51:40.932+00
+146	23	0101000020E610000066666666664E53408E06F01648A03C40	700	2023-05-09 11:51:59.795+00
+147	23	0101000020E610000066666666664E53408E06F01648A03C40	1100	2023-05-09 11:52:41.704+00
+148	23	0101000020E610000066666666664E53408E06F01648A03C40	1900	2023-05-09 11:55:00.422+00
+149	23	0101000020E610000066666666664E53408E06F01648A03C40	900	2023-05-09 11:55:12.179+00
+151	23	0101000020E610000066666666664E53408E06F01648A03C40	750	2023-05-09 12:01:58.016+00
+153	23	0101000020E610000066666666664E53408E06F01648A03C40	900	2023-05-09 12:03:12.338+00
+154	23	0101000020E610000066666666664E53408E06F01648A03C40	1380	2023-05-09 12:03:38.208+00
+157	23	0101000020E610000066666666664E53408E06F01648A03C40	300	2023-05-09 12:21:52.036+00
+159	23	0101000020E610000066666666664E53408E06F01648A03C40	300	2023-05-10 06:22:34.9+00
+162	23	0101000020E610000066666666664E53408E06F01648A03C40	0	2023-05-10 06:25:09.817+00
+163	17	0101000020E610000066666666664E53408E06F01648A03C40	-120	2023-05-10 12:26:53.803+00
+164	17	0101000020E610000066666666664E53408E06F01648A03C40	120	2023-05-11 05:29:38.188+00
+165	39	0101000020E61000006666666666CE55404703780B24504340	1550	2023-05-11 07:09:26.879+00
+\.
+
+
+--
+-- Data for Name: orderDetails; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."orderDetails" (order_id, quantity, price, product_id, id) FROM stdin;
+11	2	50	1	25
+11	2	250	2	26
+11	10	150	3	27
+12	4	50	1	28
+12	1	250	2	29
+13	2	150	3	30
+15	2	150	3	31
+16	30	25	1	32
+16	2	250	2	33
+17	1	100	6	34
+17	1	600	7	35
+18	2	200	6	36
+21	2	200	1	38
+31	2	200	1	41
+33	2	200	1	43
+41	2	200	1	49
+43	2	200	1	51
+43	2	200	2	52
+55	2	200	1	65
+55	2	200	2	66
+61	2	500	1	67
+61	2	500	2	68
+67	2	100	1	69
+67	2	200	2	70
+68	2	100	1	71
+68	2	200	2	72
+73	3	300	1	77
+73	2	500	2	78
+74	3	300	1	79
+74	2	500	2	80
+78	5	300	4	81
+78	1	500	3	82
+79	5	300	4	83
+79	1	500	3	84
+79	10	250	2	85
+80	1	500	4	86
+81	1	500	4	87
+82	1	500	4	88
+83	1	500	4	89
+84	1	500	4	90
+86	1	500	4	91
+95	1	500	4	92
+101	2	200	4	93
+101	5	400	6	94
+108	2	200	4	95
+108	5	400	6	96
+121	2	1400	4	98
+121	5	500	6	99
+123	2	1400	10	100
+123	1	700	4	101
+123	1	100	6	102
+127	2	1400	10	103
+127	1	700	4	104
+127	1	100	6	105
+128	2	1400	10	106
+128	1	700	4	107
+128	1	100	6	108
+130	1	500	1	109
+130	1	300	8	110
+130	3	2100	10	111
+130	2	800	7	112
+131	1	300	8	113
+131	3	2100	10	114
+132	1	100	6	115
+132	2	300	3	116
+132	3	750	2	117
+134	3	900	8	118
+145	8	5600	10	119
+146	1	700	10	120
+147	2	600	8	121
+147	2	500	2	122
+148	2	1400	10	123
+148	2	500	2	124
+149	3	900	8	125
+151	3	750	2	126
+153	3	900	8	127
+154	3	900	8	128
+154	4	480	29	129
+157	1	300	8	132
+159	1	300	8	133
+162	0	0	8	134
+163	-1	-120	29	135
+164	1	120	29	136
+165	1	120	29	137
+165	2	200	6	138
+165	4	480	32	139
+165	3	750	11	140
+\.
+
+
+--
+-- Data for Name: postgis; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.postgis (geom, geog) FROM stdin;
+010100000075029A081B9A5DC0F085C954C1F84040	0101000020E61000002575029A089B36C0AE47E17A14FE4F40
+0101000000F7065F984C6544409A99999999395940	0101000020E6100000E4141DC9E5C759C00DE02D90A0183C40
+\.
+
+
+--
+-- Data for Name: product; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.product (id, name, price, units) FROM stdin;
+3	rasmalai	150	96
+8	mushroom korma	300	50
+33	veg sandwich	100	20
+34	gulab jamun	25	100
+15	chocolate ice cream	500	100
+16	butterscotch ice cream	500	100
+17	strawberry ice cream	500	100
+35	malai kofta	150	100
+38	paneer tikka	250	100
+39	sarso ka saag	130	100
+18	kulfi	150	100
+19	falooda kulfi	150	100
+20	pav bhaji	170	100
+21	masala dosa	150	100
+22	paneer dosa	180	40
+23	idli sambhar	140	60
+25	chole kulche	140	60
+26	amritsari kulche	140	60
+27	amritsari chole	140	60
+24	chole bhature	140	100
+4	vegetable cheese max lasagna	700	6
+31	momos	120	80
+1	pizza	500	69
+41	buttermilk	30	100
+7	mushroom pizza	400	68
+42	pain au chocolat	500	12
+44	fruit chaat	30	100
+12	fruit chaat	30	100
+10	pasta	700	0
+11	rajma chawal	250	97
+2	shahi paneer	250	80
+32	chicken sandwich	120	72
+29	haka noodles	120	70
+6	mango shake	100	19
+52	bhel puri	60	25
+45	bhel puri	45	20
+53	taco bell franchise	160000	3
+\.
+
+
+--
+-- Data for Name: spatial_ref_sys; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) FROM stdin;
+\.
+
+
+--
+-- Data for Name: user; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."user" (password, id, name, email, address, deleted_at) FROM stdin;
+$2b$10$tDOCuTESvNbOTLb8TQQTveyE4PaTi4eWOpu06nxOvqgEpt5OI77ni	23	testing	testing@gmail.com	testing	2023-05-10 07:15:01.864+00
+$2b$10$F66ImBzeKmXXZ/t/gD3fNeW17526IWNU6IapmLuvVFUMjKHHOM9ta	21	test	test@gmail.com	test	2023-05-10 07:21:51.945+00
+$2b$10$A2uv9XIbS9q7xZxvdmTB8e.4WGoxCo80uNttZj1zcvZaGBkwiCyXS	8	saurabh	saurabh@gmail.com	janakpuri	2023-05-10 07:28:41.476+00
+$2b$10$l.6wzDD8yd799X8fizwLmeQ4aUTNVAwi2w2MQJm.ZrNmY9mrwpfCa	4	aayush	aayush@gmail.com	ghar, delhi	2023-05-04 06:06:54.443+00
+$2b$10$gP1JZ4THFQCrrvtQf1bUBO5He/dyoBdgLLVaa7FNm0gCVVrS/yCfm	3	hrithik	hrithik@gmail.com	rohini, delhi	2023-05-04 06:07:39.991+00
+$2b$10$x7cpEZyBbyPY.5ADUI/Auu./1NDdqOFzwU3sN7WrdINnaA11AN9Lm	6	surbhi	surbhi@yahoo.com	delhi	2023-05-04 06:10:56.158+00
+$2b$10$VtasjQN5A7NGht7tQs38kebShfBhjNShWofzztHDxFmsB.6xN43E2	2	surbhi	surbhi@gmail.com	paris	\N
+$2b$10$9g6zpq42PwJQXrM03PwhKuy3qipxhd.y0FHlx5/UoselPh.66mLBO	11	mohit	mohit@gmail.com	preet vihar	2023-05-04 06:26:01.99+00
+$2b$10$zCi6ZQ6yMPW1IoknGCQV/uEdhySLt1ZXlGfvUQK81.0UifCwriMa2	17	mohit	mohit@gmail.com	preet vihar	\N
+$2b$10$rlcV/Tlx.XHHcegTxpTR0ubTrzgQK0/bb7rfcDfVkE.cbHW8Sr/v.	18	hrithik	hrithik@gmail.com	rohini	\N
+$2b$10$SVvVxA7L5buUPOCsLBpvS.sHeQr6oJZHv1MuwJ/Y4O953cG3A9pwq	19	aditya	aditya@gmail.com	shahdara	2023-05-04 11:17:34.379+00
+$2b$10$5aUzK/kkJ069o985cjM42.4hjdPz2que9W/sxSO0eo9m0.6bSQxTq	39	aditya negi	aditya@gmail.com	shahdara	\N
+$2b$10$xe3o.R35Wuur2Vyx38U.3O2qbFrq1At0uNiiH/F.yyXZTZqjGBYg2	20	aditya	aditya@gmail.com	delhi	2023-05-04 11:20:57.254+00
+$2b$10$zOWRsOjN1CRVlKyoM79ljeQKVYPoeumLZ8u8OlStvhhzfNiKghBU6	45	chinu	chinu@gmail.com	shahdara	\N
+$2b$10$3mt15915/Rf14qYXn2BmoOKEfZTbs1sE/1Meq3gkBNJf0QkojRixy	47	saurabh	saurabh@gmail.com	janakpuri	\N
+$2b$10$zdeU5vvveAU.hQZZR.G6SOMGAsGX/JjZyWMdadHUgg.nQq9zj1tGS	48	shuchi	shuchi@gmail.com	baghpat	\N
+$2b$10$seSnVn9c501hdMRvHOhQbesm6jgjLVrs6rg32UsGW0T3b/AF.Zy4u	52	admin	admin@gmail.com	admin office	\N
+\.
+
+
+--
+-- Name: orderDetails_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."orderDetails_id_seq"', 140, true);
+
+
+--
+-- Name: order_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.order_id_seq', 165, true);
+
+
+--
+-- Name: product_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.product_id_seq', 53, true);
+
+
+--
+-- Name: user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.user_id_seq', 52, true);
+
+
+--
+-- Name: orderDetails orderDetails_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."orderDetails"
+    ADD CONSTRAINT "orderDetails_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: order order_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."order"
+    ADD CONSTRAINT order_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product product_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product
+    ADD CONSTRAINT product_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user user_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."user"
+    ADD CONSTRAINT user_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: unique_email_deletedat; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX unique_email_deletedat ON public."user" USING btree (email) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: orderDetails order_id; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."orderDetails"
+    ADD CONSTRAINT order_id FOREIGN KEY (order_id) REFERENCES public."order"(id) NOT VALID;
+
+
+--
+-- Name: orderDetails product_id; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."orderDetails"
+    ADD CONSTRAINT product_id FOREIGN KEY (product_id) REFERENCES public.product(id) NOT VALID;
+
+
+--
+-- Name: order user_id; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."order"
+    ADD CONSTRAINT user_id FOREIGN KEY (user_id) REFERENCES public."user"(id) NOT VALID;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
