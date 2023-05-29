@@ -17,6 +17,8 @@ app.use(
   })
 );
 
+const esClient=require('./utils/elasticsearch');
+
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/orders", ordersRouter);

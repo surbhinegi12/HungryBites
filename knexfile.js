@@ -2,6 +2,7 @@ const PGDB_PASSWORD = process.env.PGDB_PASSWORD;
 
 module.exports = {
   development: {
+    debug:true,
     client: "pg",
     connection:process.env.PG_URL,
     // {

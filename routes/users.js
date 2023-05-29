@@ -27,7 +27,7 @@ router.get("/:id", validateId, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const users = await DB("user").where({ id: id }).whereNull("deleted_at");
+    const users = await DB("user").where({ id: id }).select(["id", "name", "address", "email"]).whereNull("deleted_at");
     if (users.length == 0) {
       res.status(404).send("User does not exists");
     }
