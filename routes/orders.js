@@ -1,17 +1,50 @@
 var express = require("express");
 var router = express.Router();
 const DB = require("../services/DB");
+const client = require("../utils/elasticsearch");
+
+const productMapping = {
+  properties: {
+    id: { type: "keyword" },
+    user_id: { type: "keyword" },
+    product_id: { type: "keyword" },
+    order_id: { type: "keyword" },
+    quantity: { type: "integer" },
+    price: { type: "double" },
+    amount: { type: "double" },
+    location: { type: "geo_point" },
+    created_at: { type: "date" },
+  },
+};
+
+const indexName = "orders";
+
+async function createOrderIndex() {
+  try {
+    const indexExists = await client.indices.exists({ index: indexName });
+    if (indexExists) {
+      console.log(
+        `Index '${indexName}' already exists. Skipping index creation.`
+      );
+      return;
+    }
+
+    const response = await client.indices.create({
+      index: indexName,
+      body: {
+        mappings: productMapping,
+      },
+    });
+
+    console.log(`Index '${indexName}' and mapping created successfully`);
+  } catch (error) {
+    console.error("Error creating index:", error);
+  }
+}
+
+createOrderIndex();
 
 router.get("/", async (req, res) => {
-  const {
-    productId,
-    orderId,
-    createdBefore,
-    createdAfter,
-    distance,
-    latitude,
-    longitude,
-  } = req.query;
   const userId = req.session.userId;
 
   try {
@@ -26,30 +59,16 @@ router.get("/", async (req, res) => {
       .from("order as o")
       .join("orderDetails as od", { "od.order_id": "o.id" })
       .join("product as p", { "od.product_id": "p.id" })
-      .where((builder) => {
-        if (productId) {
-          builder.where("p.id", productId);
-        }
-        if (orderId) {
-          builder.where("o.id", orderId);
-        }
-        if (createdBefore) {
-          builder.where("o.created_at", "<=", new Date(createdBefore));
-        }
-        if (createdAfter) {
-          builder.where("o.created_at", ">=", new Date(createdAfter));
-        }
-        if (distance) {
-          const newdistance = Number(distance);
-          builder.where(
-            DB.raw(
-              `ST_DWithin(o.location, ST_GeometryFromText('Point(${longitude}  ${latitude} )'),${newdistance})`
-            )
-          );
-        }
-      })
       .where("user_id", userId)
       .groupBy("o.id");
+
+    await orders.map((order) => {
+      return client.index({
+        index: "orders",
+        id: order.id,
+        body: order,
+      });
+    });
 
     res.json(orders);
   } catch (err) {
@@ -61,7 +80,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/addOrder", async (req, res) => {
+router.post("/", async (req, res) => {
   const userId = req.session.userId;
   let error = false;
   if (userId === undefined) {
@@ -104,6 +123,17 @@ router.post("/addOrder", async (req, res) => {
           await trx("product")
             .update({ units: updatedUnits })
             .where("id", data.product_id);
+
+
+            await client.update({
+              index: "products",
+              id: data.product_id,
+              body: {
+                doc: {
+                  units: updatedUnits,
+                },
+              },
+            });
         }
       }
 
@@ -124,14 +154,22 @@ router.post("/addOrder", async (req, res) => {
         });
       }
 
+      await client.index({
+        index: "orders",
+        id: order.id,
+        body: {
+          orderData,
+          orderDetailsData,
+        },
+      });
+
       return order.id;
     });
 
     if (orderId == null) {
       return;
     }
-
-    return res.status(201).send("Order added successfully");
+    return res.status(201).json({success:{order:orderData,products:orderDetailsData}});
   } catch (err) {
     if (err.code === "23502") {
       return res.status(400).send("Required field missing");

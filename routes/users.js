@@ -7,6 +7,7 @@ const client = require("../utils/elasticsearch");
 
 const userMapping = {
   properties: {
+    id: { type: "keyword" },
     name: { type: "text" },
     email: { type: "keyword" },
     password: { type: "keyword" },
@@ -61,7 +62,7 @@ router.post("/signup", async (req, res) => {
         address,
       })
       .returning("*");
-    client.index({
+    await client.index({
       index: "users",
       id: newUser.id,
       body: newUser,

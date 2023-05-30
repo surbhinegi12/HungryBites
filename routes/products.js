@@ -5,7 +5,14 @@ const client = require("../utils/elasticsearch");
 
 const productMapping = {
   properties: {
-    name: { type: "text" },
+    id: { type: "keyword" },
+    name: { type: "text",
+    fields: {
+      raw: {
+        type: "keyword",
+      },
+    },
+   },
     price: { type: "double" },
     units: { type: "integer" },
   },
@@ -63,7 +70,7 @@ router.post("/", async (req, res) => {
       .insert({ name, price, units })
       .returning("*");
     product.price = +product.price;
-    client.index({
+    await client.index({
       index: "products",
       id: product.id,
       body: {
