@@ -75,15 +75,29 @@ router.post("/signup", async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
+  const { email } = req.query;
   try {
+    const query = {
+      bool: {
+        must: [],
+      },
+    };
+
+    if (email) {
+      query.bool.must.push({
+        term: {
+          email: email,
+        },
+      });
+    }
+
     const data = await client.search({
       index: "users",
       body: {
-        query: {
-          match_all: {},
-        },
+        query: query,
       },
     });
+
     res.status(200).json({ users: data.hits.hits.map((hit) => hit._source) });
   } catch (err) {
     res.status(500).json(err);
@@ -177,8 +191,8 @@ router.put("/:id", validateId, async (req, res) => {
       index: "users",
       id: id,
       body: {
-        doc: updatedDetails,
-      },
+       doc: updatedDetails
+      }
     });
 
     res.status(201).send(`User with id ${id} has been updated.`);

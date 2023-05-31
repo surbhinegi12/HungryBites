@@ -6,13 +6,14 @@ const client = require("../utils/elasticsearch");
 const productMapping = {
   properties: {
     id: { type: "keyword" },
-    name: { type: "text",
-    fields: {
-      raw: {
-        type: "keyword",
+    name: {
+      type: "text",
+      fields: {
+        raw: {
+          type: "keyword",
+        },
       },
     },
-   },
     price: { type: "double" },
     units: { type: "integer" },
   },
@@ -46,19 +47,46 @@ async function createProductIndex() {
 createProductIndex();
 
 router.get("/", async (req, res) => {
+  const { name, pricegte, pricelte } = req.query;
+
   try {
+    const query = {
+      bool: {
+        must: [],
+      },
+    };
+
+    if (name) {
+      query.bool.must.push({
+        match: {
+          name: name,
+        },
+      });
+    }
+
+    if (pricegte || pricelte) {
+      query.bool.must.push({
+        range: {
+          price: {
+            gte: pricegte,
+            lte: pricelte,
+          },
+        },
+      });
+    }
+
     const data = await client.search({
       index: "products",
       body: {
-        query: {
-          match_all: {},
-        },
+        query: query,
       },
     });
+
     res
       .status(200)
       .json({ products: data.hits.hits.map((hit) => hit._source) });
   } catch (err) {
+    console.log(err);
     res.status(500).json(err);
   }
 });
@@ -69,16 +97,10 @@ router.post("/", async (req, res) => {
     const [product] = await DB("product")
       .insert({ name, price, units })
       .returning("*");
-    product.price = +product.price;
     await client.index({
       index: "products",
       id: product.id,
-      body: {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        units: product.units,
-      },
+      body: product,
     });
 
     res.status(201).json({ product });
