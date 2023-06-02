@@ -10,7 +10,6 @@ const userMapping = {
     id: { type: "keyword" },
     name: { type: "text" },
     email: { type: "keyword" },
-    password: { type: "keyword" },
     address: { type: "text" },
   },
 };
@@ -65,9 +64,19 @@ router.post("/signup", async (req, res) => {
     await client.index({
       index: "users",
       id: newUser.id,
-      body: newUser,
+      body: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        address: newUser.address,
+      },
     });
-    res.status(201).json({ user: newUser });
+    res.status(201).json({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      address: newUser.address,
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ msg: "Internal server error" });
@@ -153,6 +162,7 @@ router.delete("/:id", validateId, async (req, res) => {
   const { id } = req.params;
   try {
     const userId = req.session.userId;
+    const sessionId = req.session.id;
     const deleted_at = new Date();
     if (id != userId) {
       return res.status(400).send("Unauthorised access");
@@ -165,6 +175,7 @@ router.delete("/:id", validateId, async (req, res) => {
       .where({ id: id, id: userId })
       .update({ deleted_at: deleted_at });
 
+    req.session.destroy();
     if (result != 0) {
       res.status(200).send(`User with id ${id} deleted`);
     }
@@ -186,13 +197,18 @@ router.put("/:id", validateId, async (req, res) => {
       .where("id", userId)
       .update(req.body)
       .returning("*");
-
+    console.log({ updatedDetails });
     await client.update({
       index: "users",
       id: id,
       body: {
-       doc: updatedDetails
-      }
+        doc: {
+          id: updatedDetails.id,
+          name: updatedDetails.name,
+          email: updatedDetails.email,
+          address: updatedDetails.address,
+        },
+      },
     });
 
     res.status(201).send(`User with id ${id} has been updated.`);

@@ -60,7 +60,7 @@ router.get("/", async (req, res) => {
 
     query.bool.must.push({
       term: {
-      user_id: userId
+        user_id: userId,
       },
     });
 

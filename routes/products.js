@@ -76,6 +76,7 @@ router.get("/", async (req, res) => {
     }
 
     const data = await client.search({
+      size: 1000,
       index: "products",
       body: {
         query: query,
