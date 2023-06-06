@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 const DB = require("../services/DB");
 const client = require("../utils/elasticsearch");
+const {validateRole}= require("../middleware/validations")
 
 const productMapping = {
   properties: {
@@ -92,7 +93,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/",validateRole, async (req, res) => {
   const { name, price, units } = req.body;
   try {
     const [product] = await DB("product")
@@ -111,24 +112,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.delete("/:productId", async (req, res) => {
-  try {
-    const { productId } = req.params;
-    console.log(productId);
-    await client.delete({
-      index: "products",
-      id: productId,
-    });
-    await DB("product").where({ id: productId }).del();
-
-    res.status(200).json({ message: "Product deleted successfully" });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Product cannot be deleted" });
-  }
-});
-
-router.put("/:productId", async (req, res) => {
+router.put("/:productId",validateRole, async (req, res) => {
   try {
     const productId = req.params.productId;
     const { name, price, units } = req.body;
@@ -149,7 +133,7 @@ router.put("/:productId", async (req, res) => {
       units,
     });
 
-    res.status(200).json({ message: "Product updated successfully" });
+    res.status(200).json({ message: "Product updated successfully"});
   } catch (err) {
     res.status(500).json({ message: "Error" });
   }

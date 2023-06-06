@@ -48,7 +48,7 @@ async function createOrderIndex() {
 createOrderIndex();
 
 router.get("/", async (req, res) => {
-  const userId = req.session.userId;
+  const userId = req.user.id;
   const { dategte, datelte, distance, location } = req.query;
 
   try {
@@ -91,19 +91,19 @@ router.get("/", async (req, res) => {
     res.status(200).json({ orders: data.hits.hits });
   } catch (err) {
     if (userId === undefined) {
-      res.status(401).send("Login to see orders");
+      res.status(401).json({msg:"Login to see orders"});
     } else {
-      res.status(500).send("Internal server error");
+      res.status(500).json({msg:"Internal server error"});
     }
   }
 });
 
 router.post("/", async (req, res) => {
-  const userId = req.session.userId;
+  const userId = req.user.id;
   let error = false;
   if (userId === undefined) {
     error = true;
-    res.status(401).send("Login to place an order");
+    res.status(401).json({msg:"Login to place an order"});
     return;
   }
   const { orderDetails, products } = req.body;
@@ -121,7 +121,7 @@ router.post("/", async (req, res) => {
           .first();
         if (!product) {
           error = true;
-          res.status(404).send("Product does not exist");
+          res.status(404).json({msg:"Product does not exist"});
           break;
         }
 
@@ -130,11 +130,11 @@ router.post("/", async (req, res) => {
         data.price = price;
         if (data.quantity == null || data.quantity <= 0) {
           error = true;
-          res.status(400).send("Quantity cannot be empty or negative");
+          res.status(400).json({msg:"Quantity cannot be empty or negative"});
           break;
         } else if (product.units == null || product.units < data.quantity) {
           error = true;
-          res.status(400).send("Product not available");
+          res.status(400).json({msg:"Product not available"});
           break;
         } else {
           const updatedUnits = product.units - data.quantity;
@@ -192,9 +192,10 @@ router.post("/", async (req, res) => {
       .json({ success: { order: orderDetails, products: products } });
   } catch (err) {
     if (err.code === "23502") {
-      return res.status(400).send("Required field missing");
+      return res.status(400).json({msg:"Required field missing"});
     } else {
-      return res.status(500).send("Internal server error");
+      console.log(err);
+      return res.status(500).json({msg:"Internal server error"});
     }
   }
 });

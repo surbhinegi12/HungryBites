@@ -4,6 +4,12 @@ const DB = require("../services/DB");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
 const client = require("../utils/elasticsearch");
+const jwt = require("jsonwebtoken");
+const { validateId, authenticateToken, validateRole } = require("../middleware/validations");
+
+function generateAccessToken(username) {
+  return jwt.sign(username, process.env.TOKEN_SECRET, { expiresIn: "2d" });
+}
 
 const userMapping = {
   properties: {
@@ -41,17 +47,47 @@ async function createUserIndex() {
 
 createUserIndex();
 
+router.get("/",authenticateToken,validateRole, async (req, res) => {
+  const { email } = req.query;
+  try {
+    const query = {
+      bool: {
+        must: [],
+      },
+    };
+
+    if (email) {
+      query.bool.must.push({
+        term: {
+          email: email,
+        },
+      });
+    }
+
+    const data = await client.search({
+      index: "users",
+      body: {
+        query: query,
+      },
+    });
+
+    res.status(200).json({ users: data.hits.hits.map((hit) => hit._source) });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
 router.post("/signup", async (req, res) => {
   const { name, password, email, address } = req.body;
   const salt = bcrypt.genSaltSync(10);
   const hash = bcrypt.hashSync(password, salt);
   if (!validator.isEmail(email)) {
-    return res.status(400).send("Invalid email address");
+    return res.status(400).json({msg:"Invalid email address"});
   }
   try {
     const [existingUser] = await DB("user").where({ email, deleted_at: null });
     if (existingUser) {
-      return res.status(400).send("User with this email already exists");
+      return res.status(400).json({msg:"User with this email already exists"});
     }
     const [newUser] = await DB("user")
       .insert({
@@ -83,36 +119,6 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
-  const { email } = req.query;
-  try {
-    const query = {
-      bool: {
-        must: [],
-      },
-    };
-
-    if (email) {
-      query.bool.must.push({
-        term: {
-          email: email,
-        },
-      });
-    }
-
-    const data = await client.search({
-      index: "users",
-      body: {
-        query: query,
-      },
-    });
-
-    res.status(200).json({ users: data.hits.hits.map((hit) => hit._source) });
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
-
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -122,18 +128,18 @@ router.post("/login", async (req, res) => {
       .first()
       .then((user) => {
         if (!user) {
-          res.status(401).send("Invalid email or password");
+          res.status(401).json({msg:"Invalid email or password"});
         } else {
           bcrypt.compare(password, user.password, (err, result) => {
             if (result) {
-              const sessionId = req.session.id;
-              req.session.userId = user.id;
-              req.session.email = user.email;
-              res
-                .status(200)
-                .send(`Login success with session id ${sessionId}`);
+              const token = generateAccessToken({
+                email: user.email,
+                id: user.id,
+              });
+              console.log(user.email, user.id);
+              res.status(200).json({ msg: "Login success with token", token });
             } else {
-              res.status(401).send("Invalid email or password");
+              res.status(401).json({ msg: "Invalid email or password" });
             }
           });
         }
@@ -143,29 +149,14 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.post("/logout", (req, res) => {
-  const sessionId = req.session.id;
-  req.session.destroy(() => {
-    return res.status(200).send(`Logout success for session id ${sessionId}`);
-  });
-});
-
-function validateId(req, res, next) {
+router.delete("/:id", validateId, authenticateToken, async (req, res) => {
   const { id } = req.params;
-  if (!Number.isInteger(Number(id))) {
-    return res.status(400).send("Invalid id parameter, must be an integer");
-  }
-  next();
-}
-
-router.delete("/:id", validateId, async (req, res) => {
-  const { id } = req.params;
+  const user = req.user;
   try {
-    const userId = req.session.userId;
-    const sessionId = req.session.id;
+    const userId = req.user.id;
     const deleted_at = new Date();
     if (id != userId) {
-      return res.status(400).send("Unauthorised access");
+      return res.status(400).json({msg:"Unauthorised access"});
     }
     await client.delete({
       index: "users",
@@ -175,19 +166,20 @@ router.delete("/:id", validateId, async (req, res) => {
       .where({ id: id, id: userId })
       .update({ deleted_at: deleted_at });
 
-    req.session.destroy();
     if (result != 0) {
-      res.status(200).send(`User with id ${id} deleted`);
+      res.status(200).json({msg:"User deleted successfully"});
     }
   } catch (err) {
     res.status(500).json(err);
   }
 });
 
-router.put("/:id", validateId, async (req, res) => {
+router.put("/:id", validateId, authenticateToken, async (req, res) => {
+  const user = req.user;
   const { id } = req.params;
   try {
-    const userId = req.session.userId;
+    const userId = user.id;
+    console.log(userId, id);
     if (id != userId) {
       return res.status(400).send("Unauthorised access");
     }
@@ -211,7 +203,7 @@ router.put("/:id", validateId, async (req, res) => {
       },
     });
 
-    res.status(201).send(`User with id ${id} has been updated.`);
+    res.status(201).json({msg:"User updated successfully"});
   } catch (err) {
     res.json(err);
   }
